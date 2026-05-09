@@ -43,9 +43,14 @@ export default function App() {
     type: "svg" as DrawType,
     data: "https://vietqr.net",
     image: "",
+    qrOptions: {
+      typeNumber: 0 as TypeNumber,
+      mode: "Byte" as Mode,
+      errorCorrectionLevel: "Q" as ErrorCorrectionLevel
+    },
     dotsOptions: { color: "#1e293b", type: "square" as DotType },
     backgroundOptions: { color: "#ffffff" },
-    imageOptions: { crossOrigin: "anonymous", margin: 8, imageSize: 0.35, hideBackgroundDots: true },
+    imageOptions: { crossOrigin: "anonymous", margin: 8, imageSize: 0.2, hideBackgroundDots: true },
     cornersSquareOptions: { type: "square" as CornerSquareType, color: "#0f172a" },
     cornersDotOptions: { type: "square" as CornerDotType, color: "#0f172a" }
   }), []);
@@ -153,8 +158,11 @@ export default function App() {
       imageOptions: {
         crossOrigin: "anonymous",
         margin: 8,
-        imageSize: 0.35,
+        imageSize: 0.2,
         hideBackgroundDots: true
+      },
+      qrOptions: {
+        errorCorrectionLevel: "Q" as ErrorCorrectionLevel
       }
     });
 

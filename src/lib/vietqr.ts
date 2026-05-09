@@ -24,6 +24,18 @@ function calculateCRC(str: string): string {
   return crc.toString(16).toUpperCase().padStart(4, '0');
 }
 
+/**
+ * Normalizes Vietnamese text by removing accents for better banking app compatibility.
+ */
+function normalizeText(text: string): string {
+  return text
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/đ/g, 'd')
+    .replace(/Đ/g, 'D')
+    .toUpperCase();
+}
+
 export function generateVietQR(data: {
   bankBin: string;
   accountNumber: string;
@@ -42,7 +54,7 @@ export function generateVietQR(data: {
   // 38: Merchant Account Information (Consumer Payment)
   const guid = formatField('00', 'A000000727');
   const service = formatField('00', bankBin) + formatField('01', accountNumber);
-  const merchantInfo = guid + formatField('01', service);
+  const merchantInfo = guid + formatField('01', service) + formatField('02', 'QRIBFTTA');
   qr += formatField('38', merchantInfo);
 
   // 53: Transaction Currency (VND = 704)
@@ -58,12 +70,12 @@ export function generateVietQR(data: {
 
   // 59: Merchant Name (Account Name)
   if (accountName) {
-    qr += formatField('59', accountName.toUpperCase());
+    qr += formatField('59', normalizeText(accountName).substring(0, 25));
   }
 
   // 62: Additional Data Field (Purpose of Transaction)
   if (description) {
-    qr += formatField('62', formatField('08', description));
+    qr += formatField('62', formatField('08', normalizeText(description).substring(0, 25)));
   }
 
   // 63: CRC
