@@ -52,7 +52,10 @@ export default function App() {
 
   const getProxyUrl = (url: string) => {
     if (!url || url.startsWith('data:') || url.startsWith('blob:')) return url;
-    return `/api/proxy-logo?url=${encodeURIComponent(url)}`;
+    // Use images.weserv.nl as a reliable, public CORS proxy for bank logos
+    // This removes the need for a custom backend proxy and works on Vercel out-of-the-box
+    const cleanUrl = url.replace(/^https?:\/\//, '');
+    return `https://images.weserv.nl/?url=${cleanUrl}&n=-1`;
   };
 
   const [qrStyle, setQrStyle] = useState<QRStyle>({
@@ -112,18 +115,26 @@ export default function App() {
     : "";
 
   useEffect(() => {
-    if (qrContainerRef.current) {
-      qrContainerRef.current.innerHTML = "";
-      qrCode.append(qrContainerRef.current);
+    const node = qrContainerRef.current;
+    if (node) {
+      node.innerHTML = "";
+      qrCode.append(node);
     }
+    return () => {
+      if (node) node.innerHTML = "";
+    };
   }, [qrCode]);
 
   useEffect(() => {
     if (!qrCode) return;
     
+    // Create data to prevent empty renders failing silently
+    const data = qrString || "https://vietqr.net";
+    const image = logoFile || (selectedBank?.logo ? getProxyUrl(selectedBank.logo) : "");
+
     qrCode.update({
-      data: qrString || "https://vietqr.net",
-      image: logoFile || (selectedBank?.logo ? getProxyUrl(selectedBank.logo) : ""),
+      data,
+      image,
       dotsOptions: {
         color: qrStyle.dotsColor,
         type: qrStyle.dotsType as DotType,
@@ -138,8 +149,17 @@ export default function App() {
       cornersDotOptions: {
         type: qrStyle.cornersDotType as CornerDotType,
         color: qrStyle.cornersDotColor,
+      },
+      imageOptions: {
+        crossOrigin: "anonymous",
+        margin: 8,
+        imageSize: 0.35,
+        hideBackgroundDots: true
       }
     });
+
+    // If we have an image, we might need to wait for it to load for some browsers
+    // Although qr-code-styling usually handles this internally.
   }, [qrString, qrStyle, logoFile, selectedBank, qrCode, bgFile]);
 
   const copyQRString = () => {
@@ -151,33 +171,6 @@ export default function App() {
 
   const [downloadFormat, setDownloadFormat] = useState<'png' | 'svg' | 'pdf'>('png');
   const [isDownloadOptionsOpen, setIsDownloadOptionsOpen] = useState(false);
-
-  const downloadQR = async () => {
-    if (!qrCode) return;
-    
-    const fileName = `VietQR-${formData.accountNumber || 'template'}`;
-
-    if (downloadFormat === 'pdf') {
-      const extension = 'png'; // Get as png for PDF embedding
-      const blob = await qrCode.getRawData(extension);
-      if (blob) {
-        const reader = new FileReader();
-        reader.onload = () => {
-          const base64data = reader.result as string;
-          const pdf = new jsPDF();
-          pdf.addImage(base64data, 'PNG', 10, 10, 190, 190);
-          pdf.save(`${fileName}.pdf`);
-        };
-        reader.readAsDataURL(blob);
-      }
-    } else {
-      qrCode.download({ 
-        name: fileName, 
-        extension: downloadFormat 
-      });
-    }
-    setIsDownloadOptionsOpen(false);
-  };
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>, type: 'logo' | 'bg') => {
     const file = e.target.files?.[0];
