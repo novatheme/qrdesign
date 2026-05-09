@@ -9,6 +9,7 @@ import QRCodeStyling, {
   CornerDotType,
   Options
 } from "qr-code-styling";
+import { jsPDF } from "jspdf";
 import { Search, Download, ChevronRight, CreditCard, User, Landmark, MessageSquare, IndianRupee, Globe, Share2, Copy, Check, Languages, Settings, Palette, Grid, Image as ImageIcon, Upload } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { Bank, QRData, ApiResponse, QRStyle } from "./types";
@@ -150,9 +151,34 @@ export default function App() {
     setTimeout(() => setCopied(false), 2000);
   };
 
-  const downloadQR = () => {
+  const [downloadFormat, setDownloadFormat] = useState<'png' | 'svg' | 'pdf'>('png');
+  const [isDownloadOptionsOpen, setIsDownloadOptionsOpen] = useState(false);
+
+  const downloadQR = async () => {
     if (!qrCode) return;
-    qrCode.download({ name: `VietQR-${formData.accountNumber}`, extension: "png" });
+    
+    const fileName = `VietQR-${formData.accountNumber || 'template'}`;
+
+    if (downloadFormat === 'pdf') {
+      const extension = 'png'; // Get as png for PDF embedding
+      const blob = await qrCode.getRawData(extension);
+      if (blob) {
+        const reader = new FileReader();
+        reader.onload = () => {
+          const base64data = reader.result as string;
+          const pdf = new jsPDF();
+          pdf.addImage(base64data, 'PNG', 10, 10, 190, 190);
+          pdf.save(`${fileName}.pdf`);
+        };
+        reader.readAsDataURL(blob);
+      }
+    } else {
+      qrCode.download({ 
+        name: fileName, 
+        extension: downloadFormat 
+      });
+    }
+    setIsDownloadOptionsOpen(false);
   };
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>, type: 'logo' | 'bg') => {
@@ -200,7 +226,12 @@ export default function App() {
               >
                 <Languages size={16} className="text-slate-500" />
                 <div className="flex items-center gap-2">
-                  <img src={languages.find(l => l.code === lang)?.flag} alt="" className="w-5 h-3.5 object-cover rounded shadow-sm" />
+                  <img 
+                    src={languages.find(l => l.code === lang)?.flag} 
+                    alt="" 
+                    className="w-5 h-3.5 object-cover rounded shadow-sm" 
+                    referrerPolicy="no-referrer"
+                  />
                   <span>{languages.find(l => l.code === lang)?.name}</span>
                 </div>
                 <ChevronRight size={14} className={cn("text-slate-400 transition-transform", isLangSelectorOpen && "rotate-90")} />
@@ -226,7 +257,12 @@ export default function App() {
                           lang === l.code ? "text-blue-600 font-bold bg-blue-50/50" : "text-slate-600"
                         )}
                       >
-                        <img src={l.flag} alt="" className="w-5 h-3.5 object-cover rounded shadow-sm" />
+                        <img 
+                          src={l.flag} 
+                          alt="" 
+                          className="w-5 h-3.5 object-cover rounded shadow-sm"
+                          referrerPolicy="no-referrer"
+                        />
                         <span>{l.name}</span>
                       </button>
                     ))}
@@ -671,30 +707,68 @@ export default function App() {
                       backgroundPosition: 'center'
                     }}
                   >
-                    {!qrString && (
-                      <div className="w-[300px] h-[300px] flex flex-col items-center justify-center gap-4 text-slate-300 bg-white/40 backdrop-blur-[2px] absolute inset-0 z-10">
-                        <Landmark size={64} strokeWidth={1} />
-                        <p className="text-sm font-medium text-center px-8">{t.previewInstruction}</p>
-                      </div>
-                    )}
-                    <div ref={qrRef} className={cn("transition-opacity duration-300 bg-white")} />
+                    <div 
+                      ref={qrRef} 
+                      className="w-[300px] h-[300px] flex items-center justify-center bg-white" 
+                    />
                   </div>
 
                   <div className="w-full space-y-4">
                     <div className="flex gap-2">
-                        <button
-                          disabled={!qrString}
-                          onClick={downloadQR}
-                          className={cn(
-                            "flex-1 h-14 rounded-2xl flex items-center justify-center gap-3 font-bold transition-all shadow-lg",
-                            qrString 
-                              ? "bg-slate-900 text-white hover:bg-slate-800 active:scale-95 shadow-slate-200" 
-                              : "bg-slate-100 text-slate-400 cursor-not-allowed shadow-none"
-                          )}
-                        >
-                          <Download size={20} />
-                          {t.download}
-                        </button>
+                        <div className="flex-1 relative">
+                          <button
+                            disabled={!qrString}
+                            onClick={() => setIsDownloadOptionsOpen(!isDownloadOptionsOpen)}
+                            className={cn(
+                              "w-full h-14 rounded-2xl flex items-center justify-center gap-3 font-bold transition-all shadow-lg",
+                              qrString 
+                                ? "bg-slate-900 text-white hover:bg-slate-800 active:scale-95 shadow-slate-200" 
+                                : "bg-slate-100 text-slate-400 cursor-not-allowed shadow-none"
+                            )}
+                          >
+                            <Download size={20} />
+                            {t.download}
+                            <ChevronRight size={16} className={cn("ml-auto mr-2 transition-transform", isDownloadOptionsOpen && "rotate-90")} />
+                          </button>
+
+                          <AnimatePresence>
+                            {isDownloadOptionsOpen && (
+                              <motion.div
+                                initial={{ opacity: 0, y: -10 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                exit={{ opacity: 0, y: -10 }}
+                                className="absolute bottom-full left-0 right-0 mb-3 bg-white rounded-2xl shadow-2xl border border-slate-100 overflow-hidden z-50 p-2"
+                              >
+                                {(['png', 'svg', 'pdf'] as const).map((ext) => (
+                                  <button
+                                    key={ext}
+                                    onClick={() => {
+                                      setDownloadFormat(ext);
+                                      // Wait a bit to show selection before downloading
+                                      setTimeout(() => {
+                                        setDownloadFormat(ext);
+                                        // Use direct call because state update might be too slow for immediate download
+                                      }, 0);
+                                    }}
+                                    className={cn(
+                                      "w-full flex items-center justify-between px-4 py-2.5 rounded-xl text-sm font-bold transition-all",
+                                      downloadFormat === ext ? "bg-blue-50 text-blue-600" : "text-slate-600 hover:bg-slate-50"
+                                    )}
+                                  >
+                                    <span className="uppercase">{ext}</span>
+                                    {downloadFormat === ext && <Check size={16} />}
+                                  </button>
+                                ))}
+                                <button
+                                  onClick={downloadQR}
+                                  className="w-full mt-2 h-11 bg-blue-600 text-white rounded-xl text-sm font-bold shadow-lg shadow-blue-100 hover:bg-blue-700 active:scale-95 transition-all"
+                                >
+                                  {lang === 'vi' ? 'Bắt đầu tải' : 'Start Download'}
+                                </button>
+                              </motion.div>
+                            )}
+                          </AnimatePresence>
+                        </div>
                         <button
                           disabled={!qrString}
                           onClick={copyQRString}
