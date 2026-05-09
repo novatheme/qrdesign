@@ -1,0 +1,6 @@
+{
+  "name": "VietQR Generator",
+  "description": "Ứng dụng tạo mã QR thanh toán ngân hàng chuẩn VietQR (EMVCo), hỗ trợ tất cả ngân hàng Việt Nam và đa ngôn ngữ (EN, ZH, KO, JA).",
+  "requestFramePermissions": [],
+  "majorCapabilities": []
+}
