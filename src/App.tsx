@@ -36,19 +36,24 @@ export default function App() {
   const [isLangSelectorOpen, setIsLangSelectorOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [copied, setCopied] = useState(false);
-  const qrRef = useRef<HTMLDivElement>(null);
+  const qrContainerRef = useRef<HTMLDivElement>(null);
   const qrCode = useMemo(() => new QRCodeStyling({
     width: 300,
     height: 300,
     type: "svg" as DrawType,
     data: "https://vietqr.net",
     image: "",
-    dotsOptions: { color: "#000000", type: "square" as DotType },
+    dotsOptions: { color: "#1e293b", type: "square" as DotType },
     backgroundOptions: { color: "#ffffff" },
-    imageOptions: { crossOrigin: "anonymous", margin: 10 },
-    cornersSquareOptions: { type: "square" as CornerSquareType, color: "#000000" },
-    cornersDotOptions: { type: "square" as CornerDotType, color: "#000000" }
+    imageOptions: { crossOrigin: "anonymous", margin: 8, imageSize: 0.35, hideBackgroundDots: true },
+    cornersSquareOptions: { type: "square" as CornerSquareType, color: "#0f172a" },
+    cornersDotOptions: { type: "square" as CornerDotType, color: "#0f172a" }
   }), []);
+
+  const getProxyUrl = (url: string) => {
+    if (!url || url.startsWith('data:') || url.startsWith('blob:')) return url;
+    return `/api/proxy-logo?url=${encodeURIComponent(url)}`;
+  };
 
   const [qrStyle, setQrStyle] = useState<QRStyle>({
     dotsType: "square",
@@ -107,10 +112,9 @@ export default function App() {
     : "";
 
   useEffect(() => {
-    const node = qrRef.current;
-    if (node) {
-      node.innerHTML = "";
-      qrCode.append(node);
+    if (qrContainerRef.current) {
+      qrContainerRef.current.innerHTML = "";
+      qrCode.append(qrContainerRef.current);
     }
   }, [qrCode]);
 
@@ -119,7 +123,7 @@ export default function App() {
     
     qrCode.update({
       data: qrString || "https://vietqr.net",
-      image: logoFile || (selectedBank?.logo || ""),
+      image: logoFile || (selectedBank?.logo ? getProxyUrl(selectedBank.logo) : ""),
       dotsOptions: {
         color: qrStyle.dotsColor,
         type: qrStyle.dotsType as DotType,
@@ -134,15 +138,9 @@ export default function App() {
       cornersDotOptions: {
         type: qrStyle.cornersDotType as CornerDotType,
         color: qrStyle.cornersDotColor,
-      },
-      imageOptions: {
-        margin: 5,
-        imageSize: 0.4,
       }
     });
-
-    // Notify update completion if needed
-  }, [qrString, qrStyle, logoFile, selectedBank, qrCode]);
+  }, [qrString, qrStyle, logoFile, selectedBank, qrCode, bgFile]);
 
   const copyQRString = () => {
     if (!qrString) return;
@@ -708,8 +706,11 @@ export default function App() {
                     }}
                   >
                     <div 
-                      ref={qrRef} 
-                      className="w-[300px] h-[300px] flex items-center justify-center bg-white" 
+                      ref={qrContainerRef} 
+                      className={cn(
+                        "w-[300px] h-[300px] flex items-center justify-center transition-colors",
+                        bgFile ? "bg-transparent" : "bg-white"
+                      )} 
                     />
                   </div>
 
@@ -744,27 +745,50 @@ export default function App() {
                                     key={ext}
                                     onClick={() => {
                                       setDownloadFormat(ext);
-                                      // Wait a bit to show selection before downloading
+                                      // Execute download immediately for better UX
                                       setTimeout(() => {
-                                        setDownloadFormat(ext);
-                                        // Use direct call because state update might be too slow for immediate download
-                                      }, 0);
+                                        const fileName = `VietQR-${formData.accountNumber || 'template'}`;
+                                        if (ext === 'pdf') {
+                                          qrCode.getRawData('png').then(blob => {
+                                            if (blob) {
+                                              const reader = new FileReader();
+                                              reader.onload = () => {
+                                                const base64data = reader.result as string;
+                                                const pdf = new jsPDF();
+                                                pdf.addImage(base64data, 'PNG', 10, 10, 190, 190);
+                                                pdf.save(`${fileName}.pdf`);
+                                              };
+                                              reader.readAsDataURL(blob);
+                                            }
+                                          });
+                                        } else {
+                                          qrCode.download({ name: fileName, extension: ext });
+                                        }
+                                        setIsDownloadOptionsOpen(false);
+                                      }, 100);
                                     }}
                                     className={cn(
                                       "w-full flex items-center justify-between px-4 py-2.5 rounded-xl text-sm font-bold transition-all",
                                       downloadFormat === ext ? "bg-blue-50 text-blue-600" : "text-slate-600 hover:bg-slate-50"
                                     )}
                                   >
-                                    <span className="uppercase">{ext}</span>
+                                    <div className="flex items-center gap-3">
+                                      <div className={cn(
+                                        "w-8 h-8 rounded-lg flex items-center justify-center text-[10px] uppercase",
+                                        ext === 'png' ? "bg-emerald-100 text-emerald-600" : 
+                                        ext === 'svg' ? "bg-amber-100 text-amber-600" : 
+                                        "bg-red-100 text-red-600"
+                                      )}>
+                                        {ext}
+                                      </div>
+                                      <span>{ext === 'pdf' ? 'PDF Document' : ext === 'svg' ? 'Vector SVG' : 'High Quality PNG'}</span>
+                                    </div>
                                     {downloadFormat === ext && <Check size={16} />}
                                   </button>
                                 ))}
-                                <button
-                                  onClick={downloadQR}
-                                  className="w-full mt-2 h-11 bg-blue-600 text-white rounded-xl text-sm font-bold shadow-lg shadow-blue-100 hover:bg-blue-700 active:scale-95 transition-all"
-                                >
-                                  {lang === 'vi' ? 'Bắt đầu tải' : 'Start Download'}
-                                </button>
+                                <div className="mt-2 p-2 bg-slate-50 rounded-xl text-[10px] text-slate-400 text-center font-medium">
+                                  {lang === 'vi' ? 'Chọn định dạng để tải về máy' : 'Select format to download'}
+                                </div>
                               </motion.div>
                             )}
                           </AnimatePresence>
