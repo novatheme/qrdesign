@@ -750,8 +750,9 @@ export default function App() {
                                       setTimeout(() => {
                                         const fileName = `VietQR-${formData.accountNumber || 'template'}`;
                                         if (ext === 'pdf') {
-                                          qrCode.getRawData('png').then(blob => {
-                                            if (blob) {
+                                          qrCode.getRawData('png').then(data => {
+                                            if (data) {
+                                              const blob = data instanceof Blob ? data : new Blob([data], { type: 'image/png' });
                                               const reader = new FileReader();
                                               reader.onload = () => {
                                                 const base64data = reader.result as string;

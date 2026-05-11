@@ -1,0 +1,55 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Merchant {
+  id           String        @id @default(uuid())
+  email        String        @unique
+  password     String
+  businessName String
+  apiKey       String        @unique @default(cuid())
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  transactions Transaction[]
+  bankAccounts BankAccount[]
+}
+
+model BankAccount {
+  id            String   @id @default(uuid())
+  merchantId    String
+  merchant      Merchant @relation(fields: [merchantId], references: [id])
+  bankCode      String   // VCB, BIDV, etc.
+  accountNumber String
+  accountName   String
+  isDefault     Boolean  @default(false)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+model Transaction {
+  id            String            @id @default(uuid())
+  merchantId    String
+  merchant      Merchant          @relation(fields: [merchantId], references: [id])
+  bankCode      String
+  accountNumber String
+  amount        Decimal           @db.Decimal(15, 2)
+  description   String?
+  status        TransactionStatus @default(PENDING)
+  qrPayload     String            @db.Text
+  externalRef   String?           @unique // Merchant's order ID
+  paidAt        DateTime?
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+}
+
+enum TransactionStatus {
+  PENDING
+  SUCCESS
+  FAILED
+  EXPIRED
+}
