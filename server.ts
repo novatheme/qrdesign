@@ -4,6 +4,9 @@ import path from "path";
 import cors from "cors";
 import helmet from "helmet";
 import morgan from "morgan";
+import { Server as SocketServer } from "socket.io";
+import { createServer as createHttpServer } from "http";
+import jwt from "jsonwebtoken";
 import { protect, authorizeApiKey } from "./src/presentation/middlewares/auth.middleware.js";
 import { VietQRService } from "./src/shared/vietqr-generator.js";
 import { QRImageService } from "./src/shared/qr-image-service.js";
@@ -11,30 +14,55 @@ import { BankService } from "./src/shared/bank-data.js";
 import { z } from "zod";
 import { generateQRSchema } from "./src/application/dto/qr.dto.js";
 
-// --- Mock Database (Replace with Prisma in Real SQL environment) ---
-const transactions: any[] = [];
+// --- Mock Database ---
+let transactions: any[] = [
+  { id: "TX-1715400000000", merchantId: "m-1", amount: 500000, description: "Payment for order #123", status: "SUCCESS", createdAt: new Date(Date.now() - 3600000 * 2) },
+  { id: "TX-1715400000001", merchantId: "m-1", amount: 125000, description: "Topup wallet", status: "PENDING", createdAt: new Date(Date.now() - 1800000) },
+  { id: "TX-1715400000002", merchantId: "m-1", amount: 2000000, description: "Bulk order", status: "SUCCESS", createdAt: new Date(Date.now() - 900000) },
+];
 const merchants: any[] = [
-  { id: "m-1", businessName: "Coffee Saigon", apiKey: "default-key" }
+  { id: "m-1", email: "merchant@example.com", businessName: "Coffee Saigon", apiKey: "default-key", secretKey: "sk-12345" }
 ];
 
 async function startServer() {
   const app = express();
+  const httpServer = createHttpServer(app);
+  const io = new SocketServer(httpServer, {
+    cors: { origin: "*" }
+  });
+
   const PORT = process.env.PORT || 3000;
 
-  // Security Middlewares
   app.use(helmet({ contentSecurityPolicy: false }));
   app.use(cors());
   app.use(express.json());
   app.use(morgan("dev"));
 
+  // Realtime Socket Logic
+  io.on("connection", (socket) => {
+    console.log("Client connected:", socket.id);
+    socket.on("join-merchant", (merchantId) => {
+      socket.join(`merchant-${merchantId}`);
+      console.log(`Socket ${socket.id} joined merchant-${merchantId}`);
+    });
+  });
+
   // --- API Routes ---
 
-  // Bank List API
+  // Auth Sample
+  app.post("/api/v1/auth/login", (req, res) => {
+    const { email, password } = req.body;
+    // For demo, any login works
+    const token = jwt.sign({ id: "m-1", email, role: "MERCHANT" }, "default_secret", { expiresIn: "1d" });
+    res.json({ status: "success", data: { token, merchant: merchants[0] } });
+  });
+
+  // Bank List
   app.get("/api/v1/banks", (req, res) => {
     res.json({ status: "success", data: BankService.getAllBanks() });
   });
 
-  // QR Generation API (Merchant Protected)
+  // QR Generation
   app.post("/api/v1/qr/generate", authorizeApiKey, async (req, res) => {
     try {
       const validatedData = generateQRSchema.parse(req.body);
@@ -56,20 +84,22 @@ async function startServer() {
 
       const base64Image = await QRImageService.toDataURL(payload);
 
-      // Record transaction
       const tx = {
         id: `TX-${Date.now()}`,
         merchantId: (req as any).merchantId,
         amount: validatedData.amount || 0,
         description: validatedData.description,
         status: "PENDING",
+        qrPayload: payload,
         createdAt: new Date()
       };
       transactions.push(tx);
 
+      // Emit new transaction to merchant dashboard
+      io.to(`merchant-${tx.merchantId}`).emit("new-transaction", tx);
+
       res.status(201).json({
         status: "success",
-        timestamp: new Date().toISOString(),
         data: {
           qrPayload: payload,
           qrBase64: base64Image,
@@ -81,63 +111,47 @@ async function startServer() {
       if (error instanceof z.ZodError) {
         return res.status(400).json({ status: "error", issues: error.issues });
       }
-      console.error(error);
       res.status(500).json({ status: "error", message: "Internal server error" });
     }
   });
 
-  // Download QR as PNG
-  app.get("/api/v1/qr/download", async (req, res) => {
-    const { payload, fileName } = req.query;
-    if (!payload) return res.status(400).send("Payload required");
-    
-    try {
-      const buffer = await QRImageService.toBuffer(payload as string);
-      res.setHeader("Content-Type", "image/png");
-      res.setHeader("Content-Disposition", `attachment; filename=${fileName || 'vietqr'}.png`);
-      res.send(buffer);
-    } catch (error) {
-      res.status(500).send("Error generating QR image");
-    }
-  });
-
-  // Merchant Dashboard: Get Transactions
-  app.get("/api/v1/merchant/transactions", authorizeApiKey, (req, res) => {
-    const merchantId = (req as any).merchantId;
-    const merchantTxs = transactions.filter(t => t.merchantId === merchantId);
-    res.json({ status: "success", data: merchantTxs });
-  });
-
-  // Admin Dashboard: Statistics
-  app.get("/api/v1/admin/stats", (req, res) => {
-    // In real app, check for isAdmin middleware
-    const stats = {
-      totalTransactions: transactions.length,
-      totalVolume: transactions.reduce((acc, t) => acc + (t.amount || 0), 0),
-      totalMerchants: merchants.length,
-      recentTransactions: transactions.slice(-5).reverse()
-    };
-    res.json({ status: "success", data: stats });
-  });
-
-  // Webhook for Payment Notification
-  app.post("/api/v1/webhooks/payment", (req, res) => {
+  // Webhook for Payment Simulation
+  app.post("/api/v1/webhooks/payment-simulate", (req, res) => {
     const { reference, status } = req.body;
-    
     const tx = transactions.find(t => t.id === reference);
     if (tx) {
       tx.status = status || "SUCCESS";
       tx.paidAt = new Date();
-      console.log(`Updated transaction ${reference} to ${tx.status}`);
-      
-      // Trigger callback with retry logic...
-      // triggerCallbackWithRetry(tx);
+      io.to(`merchant-${tx.merchantId}`).emit("payment-received", tx);
     }
-    
-    res.status(200).send("OK");
+    res.json({ status: "success", message: "Payment simulated" });
   });
 
-  // --- Vite & Client-side logic ---
+  // Admin Analytics
+  app.get("/api/v1/admin/stats", protect, (req, res) => {
+    // In real app, check for ADMIN role
+    const stats = {
+      totalVolume: transactions.filter(t => t.status === "SUCCESS").reduce((acc, t) => acc + t.amount, 0),
+      totalTransactions: transactions.length,
+      activeMerchants: merchants.length,
+      systemHealth: "OPTIMAL",
+      recentActivity: transactions.slice(-15).reverse(),
+      merchants: merchants.map(m => ({
+        ...m,
+        volume: transactions.filter(t => t.merchantId === m.id && t.status === "SUCCESS").reduce((acc, t) => acc + t.amount, 0)
+      }))
+    };
+    res.json({ status: "success", data: stats });
+  });
+
+  // Public Get Transaction (For Customer View)
+  app.get("/api/v1/public/transaction/:id", (req, res) => {
+    const tx = transactions.find(t => t.id === req.params.id);
+    if (!tx) return res.status(404).json({ status: "error", message: "Transaction not found" });
+    res.json({ status: "success", data: tx });
+  });
+
+  // --- Vite & Client ---
   if (process.env.NODE_ENV !== "production") {
     const vite = await createViteServer({
       server: { middlewareMode: true },
@@ -153,9 +167,8 @@ async function startServer() {
   }
 
   const port = typeof PORT === 'string' ? parseInt(PORT, 10) : PORT;
-
-  app.listen(port, "0.0.0.0", () => {
-    console.log(`🚀 Production-ready VietQR API running on http://localhost:${port}`);
+  httpServer.listen(port, "0.0.0.0", () => {
+    console.log(`🚀 VietQR Gateway running at http://localhost:${port}`);
   });
 }
 
