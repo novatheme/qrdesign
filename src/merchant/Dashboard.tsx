@@ -1,9 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { useAuthStore } from '../lib/store';
-import { Sidebar } from '../components/dashboard/Sidebar';
-import { StatsCard } from '../components/dashboard/StatsCard';
-import { TransactionTable } from '../components/dashboard/TransactionTable';
-import { QRGenerator } from '../components/dashboard/QRGenerator';
+import { Sidebar } from './components/Sidebar';
+import { StatsCard } from './components/StatsCard';
+import { TransactionTable } from './components/TransactionTable';
+import { QRGenerator } from './components/QRGenerator';
 import { motion } from 'motion/react';
 import { 
   DollarSign, Activity, Users, Zap, Bell, Search, 

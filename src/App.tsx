@@ -1,11 +1,11 @@
 import React from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-import { Home } from "./pages/Home";
-import { Dashboard } from "./pages/Dashboard";
-import { Login } from "./pages/Login";
-import { AdminDashboard } from "./pages/AdminDashboard";
-import { PublicPayment } from "./pages/PublicPayment";
-import { PublicGenerator } from "./pages/PublicGenerator";
+import { Home } from "./frontend/Home";
+import { Dashboard } from "./merchant/Dashboard";
+import { Login } from "./frontend/Login";
+import { AdminDashboard } from "./admin/AdminDashboard";
+import { PublicPayment } from "./frontend/PublicPayment";
+import { PublicGenerator } from "./frontend/PublicGenerator";
 import { useAuthStore } from "./lib/store";
 
 export default function App() {
