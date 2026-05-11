@@ -21,9 +21,11 @@ export const AdminDashboard = () => {
         const fetchStats = async () => {
             try {
                 const res = await api.get('/admin/stats');
-                setStats(res.data.data);
+                if (res.data && res.data.data) {
+                    setStats(res.data.data);
+                }
             } catch (err) {
-                console.error(err);
+                console.error('Failed to fetch admin stats', err);
             } finally {
                 setLoading(false);
             }
@@ -189,7 +191,7 @@ export const AdminDashboard = () => {
                                             </tr>
                                         </thead>
                                         <tbody className="divide-y divide-slate-800/50">
-                                            {stats?.merchants.map((m: any) => (
+                                            {(stats?.merchants || []).map((m: any) => (
                                                 <tr key={m.id} className="hover:bg-white/[0.02] transition-colors group">
                                                     <td className="px-8 py-6">
                                                         <span className="font-mono text-[11px] text-slate-600">#{m.id.split('-')[0]}</span>

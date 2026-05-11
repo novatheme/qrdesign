@@ -23,7 +23,9 @@ export const Dashboard = () => {
     const fetchStats = async () => {
       try {
         const res = await api.get('/merchant/stats');
-        setStats(res.data.data);
+        if (res.data && res.data.data) {
+          setStats(res.data.data);
+        }
       } catch (err) {
         console.error('Failed to fetch stats', err);
       } finally {

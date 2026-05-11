@@ -22,7 +22,15 @@ export const QRGenerator = () => {
 
     useEffect(() => {
         api.get('/banks').then(res => {
-            setBanks(res.data.data);
+            if (res.data && res.data.data && Array.isArray(res.data.data)) {
+                setBanks(res.data.data);
+            } else {
+                setBanks([]);
+            }
+            setLoadingBanks(false);
+        }).catch(err => {
+            console.error('Failed to fetch banks', err);
+            setBanks([]);
             setLoadingBanks(false);
         });
     }, []);
@@ -56,9 +64,9 @@ export const QRGenerator = () => {
         setTimeout(() => setCopied(false), 2000);
     };
 
-    const filteredBanks = banks.filter(b => 
-        b.shortName.toLowerCase().includes(searchTerm.toLowerCase()) || 
-        b.name.toLowerCase().includes(searchTerm.toLowerCase())
+    const filteredBanks = (banks || []).filter(b => 
+        (b.shortName || "").toLowerCase().includes(searchTerm.toLowerCase()) || 
+        (b.name || "").toLowerCase().includes(searchTerm.toLowerCase())
     );
 
     const simulatePayment = async () => {
