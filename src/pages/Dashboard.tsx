@@ -4,7 +4,11 @@ import { Sidebar } from '../components/dashboard/Sidebar';
 import { StatsCard } from '../components/dashboard/StatsCard';
 import { TransactionTable } from '../components/dashboard/TransactionTable';
 import { QRGenerator } from '../components/dashboard/QRGenerator';
-import { DollarSign, Activity, Users, Zap, Bell, Search, User as UserIcon } from 'lucide-react';
+import { motion } from 'motion/react';
+import { 
+  DollarSign, Activity, Users, Zap, Bell, Search, 
+  User as UserIcon, ChevronRight, Key, Copy 
+} from 'lucide-react';
 import api from '../lib/api';
 import { io, Socket } from 'socket.io-client';
 

@@ -25,7 +25,7 @@ export const Home = () => {
             title: "Customer View",
             description: "Scan, verify, and complete payments securely via the public interface.",
             icon: User,
-            link: "/pay/demo",
+            link: "/generate",
             color: "emerald",
             tag: "Public Interface"
         }

@@ -5,6 +5,7 @@ import { Dashboard } from "./pages/Dashboard";
 import { Login } from "./pages/Login";
 import { AdminDashboard } from "./pages/AdminDashboard";
 import { PublicPayment } from "./pages/PublicPayment";
+import { PublicGenerator } from "./pages/PublicGenerator";
 import { useAuthStore } from "./lib/store";
 
 export default function App() {
@@ -17,6 +18,7 @@ export default function App() {
         <Route path="/login" element={isAuthenticated ? <Navigate to="/dashboard" /> : <Login />} />
         <Route path="/dashboard/*" element={isAuthenticated ? <Dashboard /> : <Navigate to="/login" />} />
         <Route path="/admin/*" element={isAuthenticated ? <AdminDashboard /> : <Navigate to="/login" />} />
+        <Route path="/generate" element={<PublicGenerator />} />
         <Route path="/pay/:id" element={<PublicPayment />} />
         <Route path="*" element={<Navigate to="/" />} />
       </Routes>
