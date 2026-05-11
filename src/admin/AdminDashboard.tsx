@@ -8,7 +8,7 @@ import {
 } from "lucide-react";
 import { useAuthStore } from "../lib/store";
 import api from "../lib/api";
-import { StatsCard } from "../merchant/components/StatsCard.tsx";
+import { StatsCard } from "../merchant/components/StatsCard";
 import { format } from "date-fns";
 
 export const AdminDashboard = () => {

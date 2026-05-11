@@ -1,6 +1,6 @@
 import React from "react";
 import { motion } from "motion/react";
-import { QRGenerator } from "../merchant/components/QRGenerator.tsx";
+import { QRGenerator } from "../merchant/components/QRGenerator";
 import { QrCode, ArrowLeft, Zap } from "lucide-react";
 import { Link } from "react-router-dom";
 
