@@ -13,10 +13,16 @@ model Merchant {
   password     String
   businessName String
   apiKey       String        @unique @default(cuid())
+  role         UserRole      @default(MERCHANT)
   createdAt    DateTime      @default(now())
   updatedAt    DateTime      @updatedAt
   transactions Transaction[]
   bankAccounts BankAccount[]
+}
+
+enum UserRole {
+  MERCHANT
+  ADMIN
 }
 
 model BankAccount {

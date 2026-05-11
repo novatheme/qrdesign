@@ -1,4 +1,5 @@
 import express from "express";
+import "dotenv/config";
 import { createServer as createViteServer } from "vite";
 import path from "path";
 import cors from "cors";
@@ -13,23 +14,12 @@ import { QRImageService } from "./src/shared/qr-image-service.js";
 import { BankService } from "./src/shared/bank-data.js";
 import { z } from "zod";
 import { generateQRSchema } from "./src/application/dto/qr.dto.js";
+import { PrismaClient } from "@prisma/client";
+import bcrypt from "bcryptjs";
 
-// --- Mock Database ---
-const merchants: any[] = [
-  { id: "m-1", email: "saigon.coffee@example.com", businessName: "Coffee Saigon", apiKey: "pk_live_51O7c...vm4x", secretKey: "sk_live_saigon_123", role: "MERCHANT" },
-  { id: "m-2", email: "hanoi.bakery@example.com", businessName: "Hanoi Bakery", apiKey: "pk_live_51O7c...bakery", secretKey: "sk_live_hanoi_456", role: "MERCHANT" },
-  { id: "admin-1", email: "admin@vietqr.com", businessName: "VietQR HQ", apiKey: "pk_admin_master", secretKey: "sk_admin_master", role: "ADMIN" }
-];
+const prisma = new PrismaClient();
 
-let transactions: any[] = [
-  { id: "TX-1715400000000", merchantId: "m-1", amount: 45000, description: "Phê La - Order #552", status: "SUCCESS", createdAt: new Date(Date.now() - 3600000 * 24), qrBase64: "https://api.vietqr.io/image/970415-113366668888-8Vp6p5f.jpg" },
-  { id: "TX-1715400000001", merchantId: "m-1", amount: 125000, description: "Cộng Cà Phê - Order #882", status: "SUCCESS", createdAt: new Date(Date.now() - 3600000 * 12), qrBase64: "https://api.vietqr.io/image/970415-113366668888-8Vp6p5f.jpg" },
-  { id: "TX-1715400000002", merchantId: "m-1", amount: 2000000, description: "Monthly Subscription", status: "FAILED", createdAt: new Date(Date.now() - 3600000 * 5), qrBase64: "https://api.vietqr.io/image/970415-113366668888-8Vp6p5f.jpg" },
-  { id: "TX-1715400000003", merchantId: "m-2", amount: 89000, description: "Croissant Box x5", status: "SUCCESS", createdAt: new Date(Date.now() - 3600000 * 2), qrBase64: "https://api.vietqr.io/image/970415-113366668888-8Vp6p5f.jpg" },
-  { id: "TX-1715400000004", merchantId: "m-2", amount: 500000, description: "Wedding Cake Deposit", status: "PENDING", createdAt: new Date(Date.now() - 1800000), qrBase64: "https://api.vietqr.io/image/970415-113366668888-8Vp6p5f.jpg" },
-  { id: "TX-1715400000005", merchantId: "m-1", amount: 35000, description: "Black Coffee", status: "SUCCESS", createdAt: new Date(Date.now() - 900000), qrBase64: "https://api.vietqr.io/image/970415-113366668888-8Vp6p5f.jpg" },
-  { id: "TX-1715400000006", merchantId: "m-2", amount: 150000, description: "Baguette Pack", status: "SUCCESS", createdAt: new Date(Date.now() - 300000), qrBase64: "https://api.vietqr.io/image/970415-113366668888-8Vp6p5f.jpg" },
-];
+const JWT_SECRET = process.env.JWT_SECRET || "vietqr_demo_secret_2026";
 
 async function startServer() {
   const app = express();
@@ -57,27 +47,25 @@ async function startServer() {
   // --- API Routes ---
 
   // Auth Sample
-  app.post("/api/v1/auth/login", (req, res) => {
+  app.post("/api/v1/auth/login", async (req, res) => {
     const { email, password } = req.body;
     
-    const merchant = merchants.find(m => m.email === email);
-    if (!merchant) {
-      // Create a temporary merchant for demo if not exists
-      const newMerchant = { 
-        id: `m-${Date.now()}`, 
-        email, 
-        businessName: "Guest Merchant", 
-        apiKey: `pk_test_${Date.now()}`, 
-        secretKey: `sk_test_${Date.now()}`,
-        role: "MERCHANT"
-      };
-      merchants.push(newMerchant);
-      const token = jwt.sign({ id: newMerchant.id, email: newMerchant.email, role: "MERCHANT" }, "default_secret", { expiresIn: "1d" });
-      return res.json({ status: "success", data: { token, user: newMerchant } });
-    }
+    try {
+      const merchant = await prisma.merchant.findUnique({ where: { email } });
+      if (!merchant) {
+        return res.status(401).json({ status: "error", message: "Invalid credentials" });
+      }
 
-    const token = jwt.sign({ id: merchant.id, email: merchant.email, role: merchant.role }, "default_secret", { expiresIn: "1d" });
-    res.json({ status: "success", data: { token, user: merchant } });
+      const isPasswordValid = await bcrypt.compare(password, merchant.password);
+      if (!isPasswordValid) {
+        return res.status(401).json({ status: "error", message: "Invalid credentials" });
+      }
+
+      const token = jwt.sign({ id: merchant.id, email: merchant.email, role: merchant.role }, JWT_SECRET, { expiresIn: "1d" });
+      res.json({ status: "success", data: { token, user: { id: merchant.id, email: merchant.email, role: merchant.role, businessName: merchant.businessName } } });
+    } catch (error) {
+      res.status(500).json({ status: "error", message: "Login failed" });
+    }
   });
 
   // Bank List
@@ -117,16 +105,17 @@ async function startServer() {
 
       const base64Image = await QRImageService.toDataURL(payload);
 
-      const tx = {
-        id: `TX-${Date.now()}`,
-        merchantId: (req as any).merchantId,
-        amount: validatedData.amount || 0,
-        description: validatedData.description,
-        status: "PENDING",
-        qrPayload: payload,
-        createdAt: new Date()
-      };
-      transactions.push(tx);
+      const tx = await prisma.transaction.create({
+        data: {
+          merchantId: (req as any).merchantId,
+          bankCode: validatedData.bankBin,
+          accountNumber: validatedData.accountNumber,
+          amount: validatedData.amount || 0,
+          description: validatedData.description,
+          status: "PENDING",
+          qrPayload: payload,
+        }
+      });
 
       // Emit new transaction to merchant dashboard
       io.to(`merchant-${tx.merchantId}`).emit("new-transaction", tx);
@@ -149,39 +138,87 @@ async function startServer() {
   });
 
   // Webhook for Payment Simulation
-  app.post("/api/v1/webhooks/payment-simulate", (req, res) => {
+  app.post("/api/v1/webhooks/payment-simulate", async (req, res) => {
     const { reference, status } = req.body;
-    const tx = transactions.find(t => t.id === reference);
-    if (tx) {
-      tx.status = status || "SUCCESS";
-      tx.paidAt = new Date();
+    try {
+      const tx = await prisma.transaction.update({
+        where: { id: reference },
+        data: {
+          status: (status || "SUCCESS") as any,
+          paidAt: new Date()
+        }
+      });
       io.to(`merchant-${tx.merchantId}`).emit("payment-received", tx);
+      res.json({ status: "success", message: "Payment simulated" });
+    } catch (error) {
+      res.status(404).json({ status: "error", message: "Transaction not found" });
     }
-    res.json({ status: "success", message: "Payment simulated" });
+  });
+
+  // Merchant Analytics
+  app.get("/api/v1/merchant/stats", protect, async (req: any, res) => {
+    const merchantId = req.user.id;
+    try {
+      const merchantTransactions = await prisma.transaction.findMany({
+        where: { merchantId },
+        orderBy: { createdAt: 'desc' }
+      });
+      
+      const stats = {
+        totalVolume: merchantTransactions.filter(t => t.status === "SUCCESS").reduce((acc, t) => acc + Number(t.amount), 0),
+        totalTransactions: merchantTransactions.length,
+        successRate: merchantTransactions.length > 0 ? (merchantTransactions.filter(t => t.status === "SUCCESS").length / merchantTransactions.length) * 100 : 0,
+        recentActivity: merchantTransactions.slice(0, 10)
+      };
+      res.json({ status: "success", data: stats });
+    } catch (error) {
+      res.status(500).json({ status: "error", message: "Failed to fetch stats" });
+    }
   });
 
   // Admin Analytics
-  app.get("/api/v1/admin/stats", protect, (req, res) => {
-    // In real app, check for ADMIN role
-    const stats = {
-      totalVolume: transactions.filter(t => t.status === "SUCCESS").reduce((acc, t) => acc + t.amount, 0),
-      totalTransactions: transactions.length,
-      activeMerchants: merchants.length,
-      systemHealth: "OPTIMAL",
-      recentActivity: transactions.slice(-15).reverse(),
-      merchants: merchants.map(m => ({
-        ...m,
-        volume: transactions.filter(t => t.merchantId === m.id && t.status === "SUCCESS").reduce((acc, t) => acc + t.amount, 0)
-      }))
-    };
-    res.json({ status: "success", data: stats });
+  app.get("/api/v1/admin/stats", protect, async (req: any, res) => {
+    if (req.user.role !== "ADMIN") {
+      return res.status(403).json({ status: "error", message: "Forbidden: Admin access only" });
+    }
+    
+    try {
+      const allTransactions = await prisma.transaction.findMany({
+        include: { merchant: true }
+      });
+      const allMerchants = await prisma.merchant.findMany({
+        include: { transactions: true }
+      });
+
+      const stats = {
+        totalVolume: allTransactions.filter(t => t.status === "SUCCESS").reduce((acc, t) => acc + Number(t.amount), 0),
+        totalTransactions: allTransactions.length,
+        activeMerchants: allMerchants.length,
+        systemHealth: "OPTIMAL",
+        recentActivity: allTransactions.slice(-15).reverse(),
+        merchants: allMerchants.map(m => ({
+          id: m.id,
+          email: m.email,
+          businessName: m.businessName,
+          role: m.role,
+          volume: m.transactions.filter(t => t.status === "SUCCESS").reduce((acc, t) => acc + Number(t.amount), 0)
+        }))
+      };
+      res.json({ status: "success", data: stats });
+    } catch (error) {
+      res.status(500).json({ status: "error", message: "Failed to fetch admin stats" });
+    }
   });
 
   // Public Get Transaction (For Customer View)
-  app.get("/api/v1/public/transaction/:id", (req, res) => {
-    const tx = transactions.find(t => t.id === req.params.id);
-    if (!tx) return res.status(404).json({ status: "error", message: "Transaction not found" });
-    res.json({ status: "success", data: tx });
+  app.get("/api/v1/public/transaction/:id", async (req, res) => {
+    try {
+      const tx = await prisma.transaction.findUnique({ where: { id: req.params.id } });
+      if (!tx) return res.status(404).json({ status: "error", message: "Transaction not found" });
+      res.json({ status: "success", data: tx });
+    } catch (error) {
+      res.status(500).json({ status: "error", message: "Internal server error" });
+    }
   });
 
   // --- Vite & Client ---
