@@ -148,23 +148,23 @@ export const AdminDashboard = () => {
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                                 <div className="bg-[#111418] border border-slate-800 p-8 rounded-3xl group hover:border-blue-500/50 transition-all">
                                     <TrendingUp className="text-blue-500 mb-6" size={24} />
-                                    <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">Total Network Volume</p>
-                                    <h2 className="text-3xl font-black text-white tracking-tight">{new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(stats?.totalVolume || 0)}</h2>
+                                    <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">Global Volume</p>
+                                    <h2 className="text-3xl font-black text-white tracking-tight">{new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(stats?.globalVolume || 0)}</h2>
                                 </div>
                                 <div className="bg-[#111418] border border-slate-800 p-8 rounded-3xl group hover:border-emerald-500/50 transition-all">
                                     <Activity className="text-emerald-500 mb-6" size={24} />
-                                    <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">Network Requests</p>
-                                    <h2 className="text-3xl font-black text-white tracking-tight">{stats?.totalTransactions} tx</h2>
+                                    <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">Network Capacity</p>
+                                    <h2 className="text-3xl font-black text-white tracking-tight">{stats?.totalTransactions} Txns</h2>
                                 </div>
                                 <div className="bg-[#111418] border border-slate-800 p-8 rounded-3xl group hover:border-amber-500/50 transition-all">
                                     <Users className="text-amber-500 mb-6" size={24} />
-                                    <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">Active Merchants</p>
-                                    <h2 className="text-3xl font-black text-white tracking-tight">{stats?.activeMerchants}</h2>
+                                    <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">Managed Merchants</p>
+                                    <h2 className="text-3xl font-black text-white tracking-tight">{stats?.merchantCount} Units</h2>
                                 </div>
                                 <div className="bg-[#111418] border border-slate-800 p-8 rounded-3xl group hover:border-slate-500/50 transition-all">
                                     <Server className="text-slate-500 mb-6" size={24} />
-                                    <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">System Health</p>
-                                    <h2 className="text-3xl font-black text-white tracking-tight">{stats?.systemHealth}</h2>
+                                    <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">Avg Ticket Size</p>
+                                    <h2 className="text-3xl font-black text-white tracking-tight">{new Intl.NumberFormat('vi-VN').format(Math.floor(stats?.avgTransactionValue || 0))}</h2>
                                 </div>
                             </div>
 
@@ -199,16 +199,25 @@ export const AdminDashboard = () => {
                                                     <td className="px-8 py-6">
                                                         <div className="flex items-center gap-3">
                                                             <div className="w-8 h-8 rounded-lg bg-blue-500/10 flex items-center justify-center text-blue-500 font-black text-xs">
-                                                                {m.email[0].toUpperCase()}
+                                                                {m.businessName[0].toUpperCase()}
                                                             </div>
-                                                            <span className="font-bold text-sm text-slate-300 group-hover:text-white transition-colors">{m.email}</span>
+                                                            <div>
+                                                                <span className="font-bold text-sm text-slate-300 group-hover:text-white transition-colors block">{m.businessName}</span>
+                                                                <span className="text-[10px] text-slate-600 font-semibold">{m.email}</span>
+                                                            </div>
                                                         </div>
                                                     </td>
                                                     <td className="px-8 py-6">
-                                                        <span className="font-black text-white tracking-tight">{new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(m.volume)}</span>
+                                                        <div className="flex flex-col">
+                                                            <span className="font-black text-white tracking-tight">{new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(m.volume)}</span>
+                                                            <span className="text-[10px] text-slate-600 font-bold uppercase">{m.transactionCount} Trans</span>
+                                                        </div>
                                                     </td>
                                                     <td className="px-8 py-6">
-                                                        <span className="px-2.5 py-1 rounded bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 text-[10px] font-black uppercase tracking-widest">Active</span>
+                                                        <div className="flex items-center gap-2">
+                                                            <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full" />
+                                                            <span className="text-emerald-500 text-[10px] font-black uppercase tracking-widest">Active</span>
+                                                        </div>
                                                     </td>
                                                     <td className="px-8 py-6 text-right">
                                                         <button className="p-2 text-slate-600 hover:text-blue-500 transition-colors opacity-0 group-hover:opacity-100">

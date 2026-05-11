@@ -124,8 +124,8 @@ export const Dashboard = () => {
                 <>
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                     <StatsCard 
-                      title="Gross Volume" 
-                      value={new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(stats?.totalRevenue || 0)} 
+                      title="Revenue" 
+                      value={new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(stats?.totalVolume || 0)} 
                       icon={DollarSign}
                       trend={{ value: '12.5%', positive: true }}
                       color="blue"
@@ -138,8 +138,8 @@ export const Dashboard = () => {
                       color="emerald"
                     />
                     <StatsCard 
-                      title="Fulfillment Rate" 
-                      value={`${stats?.successRate.toFixed(1)}%`} 
+                      title="Success Rate" 
+                      value={`${stats?.successRate?.toFixed(1) || 0}%`} 
                       icon={Zap}
                       color="amber"
                     />
@@ -151,7 +151,7 @@ export const Dashboard = () => {
                     />
                   </div>
 
-                  <TransactionTable transactions={stats?.recentTransactions || []} />
+                  <TransactionTable transactions={stats?.recentActivity || []} />
                 </>
               )}
             </motion.div>
