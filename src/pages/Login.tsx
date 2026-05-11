@@ -17,7 +17,7 @@ export const Login = () => {
     setError('');
     try {
       const res = await api.post('/auth/login', { email, password });
-      login(res.data.data.merchant, res.data.data.token);
+      login(res.data.data.user, res.data.data.token);
     } catch (err: any) {
       setError(err.response?.data?.message || 'Login failed');
     } finally {
@@ -102,6 +102,19 @@ export const Login = () => {
                 </>
               )}
             </button>
+            <div className="mt-4 p-4 bg-slate-50 rounded-xl border border-dashed border-slate-200">
+                <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-3 text-center">Demo Credentials</p>
+                <div className="space-y-2">
+                    <div className="flex justify-between items-center text-[10px]">
+                        <span className="font-extrabold text-slate-400 uppercase">Admin:</span>
+                        <code className="text-blue-600 font-bold bg-blue-50 px-2 py-0.5 rounded">admin@vietqr.com</code>
+                    </div>
+                    <div className="flex justify-between items-center text-[10px]">
+                        <span className="font-extrabold text-slate-400 uppercase">Merchant:</span>
+                        <code className="text-emerald-600 font-bold bg-emerald-50 px-2 py-0.5 rounded">saigon.coffee@example.com</code>
+                    </div>
+                </div>
+            </div>
           </form>
 
           <footer className="pt-6 border-t border-slate-100">

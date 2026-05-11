@@ -15,13 +15,20 @@ import { z } from "zod";
 import { generateQRSchema } from "./src/application/dto/qr.dto.js";
 
 // --- Mock Database ---
-let transactions: any[] = [
-  { id: "TX-1715400000000", merchantId: "m-1", amount: 500000, description: "Payment for order #123", status: "SUCCESS", createdAt: new Date(Date.now() - 3600000 * 2) },
-  { id: "TX-1715400000001", merchantId: "m-1", amount: 125000, description: "Topup wallet", status: "PENDING", createdAt: new Date(Date.now() - 1800000) },
-  { id: "TX-1715400000002", merchantId: "m-1", amount: 2000000, description: "Bulk order", status: "SUCCESS", createdAt: new Date(Date.now() - 900000) },
-];
 const merchants: any[] = [
-  { id: "m-1", email: "merchant@example.com", businessName: "Coffee Saigon", apiKey: "default-key", secretKey: "sk-12345" }
+  { id: "m-1", email: "saigon.coffee@example.com", businessName: "Coffee Saigon", apiKey: "pk_live_51O7c...vm4x", secretKey: "sk_live_saigon_123", role: "MERCHANT" },
+  { id: "m-2", email: "hanoi.bakery@example.com", businessName: "Hanoi Bakery", apiKey: "pk_live_51O7c...bakery", secretKey: "sk_live_hanoi_456", role: "MERCHANT" },
+  { id: "admin-1", email: "admin@vietqr.com", businessName: "VietQR HQ", apiKey: "pk_admin_master", secretKey: "sk_admin_master", role: "ADMIN" }
+];
+
+let transactions: any[] = [
+  { id: "TX-1715400000000", merchantId: "m-1", amount: 45000, description: "Phê La - Order #552", status: "SUCCESS", createdAt: new Date(Date.now() - 3600000 * 24), qrBase64: "https://api.vietqr.io/image/970415-113366668888-8Vp6p5f.jpg" },
+  { id: "TX-1715400000001", merchantId: "m-1", amount: 125000, description: "Cộng Cà Phê - Order #882", status: "SUCCESS", createdAt: new Date(Date.now() - 3600000 * 12), qrBase64: "https://api.vietqr.io/image/970415-113366668888-8Vp6p5f.jpg" },
+  { id: "TX-1715400000002", merchantId: "m-1", amount: 2000000, description: "Monthly Subscription", status: "FAILED", createdAt: new Date(Date.now() - 3600000 * 5), qrBase64: "https://api.vietqr.io/image/970415-113366668888-8Vp6p5f.jpg" },
+  { id: "TX-1715400000003", merchantId: "m-2", amount: 89000, description: "Croissant Box x5", status: "SUCCESS", createdAt: new Date(Date.now() - 3600000 * 2), qrBase64: "https://api.vietqr.io/image/970415-113366668888-8Vp6p5f.jpg" },
+  { id: "TX-1715400000004", merchantId: "m-2", amount: 500000, description: "Wedding Cake Deposit", status: "PENDING", createdAt: new Date(Date.now() - 1800000), qrBase64: "https://api.vietqr.io/image/970415-113366668888-8Vp6p5f.jpg" },
+  { id: "TX-1715400000005", merchantId: "m-1", amount: 35000, description: "Black Coffee", status: "SUCCESS", createdAt: new Date(Date.now() - 900000), qrBase64: "https://api.vietqr.io/image/970415-113366668888-8Vp6p5f.jpg" },
+  { id: "TX-1715400000006", merchantId: "m-2", amount: 150000, description: "Baguette Pack", status: "SUCCESS", createdAt: new Date(Date.now() - 300000), qrBase64: "https://api.vietqr.io/image/970415-113366668888-8Vp6p5f.jpg" },
 ];
 
 async function startServer() {
@@ -52,9 +59,25 @@ async function startServer() {
   // Auth Sample
   app.post("/api/v1/auth/login", (req, res) => {
     const { email, password } = req.body;
-    // For demo, any login works
-    const token = jwt.sign({ id: "m-1", email, role: "MERCHANT" }, "default_secret", { expiresIn: "1d" });
-    res.json({ status: "success", data: { token, merchant: merchants[0] } });
+    
+    const merchant = merchants.find(m => m.email === email);
+    if (!merchant) {
+      // Create a temporary merchant for demo if not exists
+      const newMerchant = { 
+        id: `m-${Date.now()}`, 
+        email, 
+        businessName: "Guest Merchant", 
+        apiKey: `pk_test_${Date.now()}`, 
+        secretKey: `sk_test_${Date.now()}`,
+        role: "MERCHANT"
+      };
+      merchants.push(newMerchant);
+      const token = jwt.sign({ id: newMerchant.id, email: newMerchant.email, role: "MERCHANT" }, "default_secret", { expiresIn: "1d" });
+      return res.json({ status: "success", data: { token, user: newMerchant } });
+    }
+
+    const token = jwt.sign({ id: merchant.id, email: merchant.email, role: merchant.role }, "default_secret", { expiresIn: "1d" });
+    res.json({ status: "success", data: { token, user: merchant } });
   });
 
   // Bank List
