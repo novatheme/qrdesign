@@ -63,7 +63,7 @@ export const Login = () => {
             <div>
               <div className="flex items-center justify-between mb-2 px-1">
                 <label className="text-[11px] font-extrabold text-slate-400 uppercase tracking-widest block">Password</label>
-                <a href="#" className="text-[11px] font-extrabold text-blue-600 uppercase tracking-widest hover:text-blue-700">Forgot?</a>
+                <Link to="/support#accounts" className="text-[11px] font-extrabold text-blue-600 uppercase tracking-widest hover:text-blue-700">Forgot?</Link>
               </div>
               <div className="relative group">
                 <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-blue-500 transition-colors" size={18} />
