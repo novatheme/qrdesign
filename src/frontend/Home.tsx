@@ -46,7 +46,7 @@ export const Home = () => {
                 </div>
                 <div className="flex items-center gap-6">
                     <Link to="/login" className="text-sm font-bold text-slate-500 hover:text-slate-900 transition-colors">Merchant Login</Link>
-                    <button className="h-10 px-6 bg-black text-white rounded-xl text-xs font-extrabold uppercase tracking-widest hover:bg-slate-800 transition-all">Support</button>
+                    <Link to="/support" className="h-10 px-6 bg-black text-white rounded-xl text-xs font-extrabold uppercase tracking-widest hover:bg-slate-800 transition-all flex items-center">Support</Link>
                 </div>
             </nav>
 
@@ -136,10 +136,10 @@ export const Home = () => {
                         <span className="font-black text-white text-lg">VietQR Gateway</span>
                     </div>
                     <div className="flex gap-8 text-xs font-bold uppercase tracking-widest">
-                        <a href="#" className="hover:text-white">Security</a>
-                        <a href="#" className="hover:text-white">Documentation</a>
-                        <a href="#" className="hover:text-white">API Reference</a>
-                        <a href="#" className="hover:text-white">Legal</a>
+                        <Link to="/support" className="hover:text-white">Security</Link>
+                        <Link to="/support" className="hover:text-white">Documentation</Link>
+                        <Link to="/support" className="hover:text-white">API Reference</Link>
+                        <Link to="/support" className="hover:text-white">Legal</Link>
                     </div>
                     <p className="text-[10px] uppercase font-black tracking-widest">© 2026 VIETQR TECHNOLOGY PTE LTD.</p>
                 </div>

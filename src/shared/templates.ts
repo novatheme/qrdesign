@@ -1,4 +1,4 @@
-import { QRStyle } from "./types";
+import { QRStyle } from "../types";
 
 export const templates: (QRStyle & { name: string })[] = [
   {

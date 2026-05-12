@@ -1,6 +1,6 @@
 {
-  "name": "VietQR Generator",
-  "description": "Ứng dụng tạo mã QR thanh toán ngân hàng chuẩn VietQR (EMVCo), hỗ trợ tất cả ngân hàng Việt Nam và đa ngôn ngữ (EN, ZH, KO, JA).",
+  "name": "VietQR Gateway & Merchant Analytics",
+  "description": "Full-stack payment infrastructure for VietQR (EMVCo). Features include merchant dashboards, real-time transaction monitoring, smart QR billing engine, and developer API keys.",
   "requestFramePermissions": [],
   "majorCapabilities": []
 }

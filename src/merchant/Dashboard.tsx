@@ -5,12 +5,11 @@ import { StatsCard } from './components/StatsCard';
 import { TransactionTable } from './components/TransactionTable';
 import { QRGenerator } from './components/QRGenerator';
 import { motion } from 'motion/react';
-import { 
-  DollarSign, Activity, Users, Zap, Bell, Search, 
-  User as UserIcon, ChevronRight, Key, Copy 
-} from 'lucide-react';
+import { LayoutDashboard, QrCode, History, Settings, Key, LogOut, Bell, DollarSign, Activity, Users, Zap, Search, User as UserIcon, ChevronRight, Copy } from 'lucide-react';
 import api from '../lib/api';
 import { io, Socket } from 'socket.io-client';
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { BankAccountManager } from './components/BankAccountManager';
 
 export const Dashboard = () => {
   const { user, logout } = useAuthStore();
@@ -18,6 +17,17 @@ export const Dashboard = () => {
   const [stats, setStats] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [socket, setSocket] = useState<Socket | null>(null);
+
+  // Mock chart data based on stats
+  const chartData = [
+    { name: 'Mon', value: 4000 },
+    { name: 'Tue', value: 3000 },
+    { name: 'Wed', value: 2000 },
+    { name: 'Thu', value: 2780 },
+    { name: 'Fri', value: 1890 },
+    { name: 'Sat', value: 2390 },
+    { name: 'Sun', value: 3490 },
+  ];
 
   useEffect(() => {
     const fetchStats = async () => {
@@ -151,10 +161,59 @@ export const Dashboard = () => {
                     />
                   </div>
 
+                  <div className="bg-white p-8 rounded-[32px] border border-slate-200">
+                    <div className="flex items-center justify-between mb-8">
+                        <div>
+                            <h3 className="text-xl font-black text-slate-900 tracking-tight">Revenue Analytics</h3>
+                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-1">7-Day performance cycle</p>
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <span className="w-2 h-2 rounded-full bg-blue-500" />
+                            <span className="text-[10px] font-black text-slate-500 uppercase">Gross Volume</span>
+                        </div>
+                    </div>
+                    <div className="h-[300px] w-full">
+                        <ResponsiveContainer width="100%" height="100%">
+                            <AreaChart data={chartData}>
+                                <defs>
+                                    <linearGradient id="colorValue" x1="0" y1="0" x2="0" y2="1">
+                                        <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.1}/>
+                                        <stop offset="95%" stopColor="#3b82f6" stopOpacity={0}/>
+                                    </linearGradient>
+                                </defs>
+                                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fontSize: 10, fontWeight: 700, fill: '#94a3b8'}} dy={10} />
+                                <YAxis hide />
+                                <Tooltip 
+                                    contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 20px 25px -5px rgb(0 0 0 / 0.1)' }}
+                                    itemStyle={{ fontSize: '12px', fontWeight: 900, color: '#1e293b' }}
+                                />
+                                <Area type="monotone" dataKey="value" stroke="#3b82f6" strokeWidth={3} fillOpacity={1} fill="url(#colorValue)" />
+                            </AreaChart>
+                        </ResponsiveContainer>
+                    </div>
+                  </div>
+
                   <TransactionTable transactions={stats?.recentActivity || []} />
                 </>
               )}
             </motion.div>
+          )}
+
+          {activeTab === 'transactions' && (
+             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-10">
+                <div>
+                   <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">Transaction Ledger</h1>
+                   <p className="text-slate-400 font-semibold mt-1">Complete historical record of all payments.</p>
+                </div>
+                <TransactionTable transactions={stats?.recentActivity || []} />
+             </motion.div>
+          )}
+
+          {activeTab === 'settings' && (
+             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-10">
+                <BankAccountManager />
+             </motion.div>
           )}
 
           {activeTab === 'generator' && (

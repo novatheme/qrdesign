@@ -25,4 +25,43 @@ router.get("/stats", protect, async (req: any, res) => {
   }
 });
 
+router.get("/banks", protect, async (req: any, res) => {
+  try {
+    const bankAccounts = await prisma.bankAccount.findMany({
+      where: { merchantId: req.user.id }
+    });
+    res.json({ status: "success", data: bankAccounts });
+  } catch (error) {
+    res.status(500).json({ status: "error", message: "Failed to fetch bank accounts" });
+  }
+});
+
+router.post("/banks", protect, async (req: any, res) => {
+  const { bankCode, accountNumber, accountName } = req.body;
+  try {
+    const newBank = await prisma.bankAccount.create({
+      data: {
+        merchantId: req.user.id,
+        bankCode,
+        accountNumber,
+        accountName
+      }
+    });
+    res.json({ status: "success", data: newBank });
+  } catch (error) {
+    res.status(500).json({ status: "error", message: "Failed to add bank account" });
+  }
+});
+
+router.delete("/banks/:id", protect, async (req: any, res) => {
+  try {
+    await prisma.bankAccount.delete({
+      where: { id: req.params.id, merchantId: req.user.id }
+    });
+    res.json({ status: "success", message: "Bank account removed" });
+  } catch (error) {
+    res.status(500).json({ status: "error", message: "Failed to delete bank account" });
+  }
+});
+
 export default router;
