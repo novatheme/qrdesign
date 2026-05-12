@@ -16,22 +16,37 @@ export const AdminDashboard = () => {
     const [stats, setStats] = useState<any>(null);
     const [loading, setLoading] = useState(true);
     const [activeTab, setActiveTab] = useState('overview');
+    const [seeding, setSeeding] = useState(false);
+
+    const fetchStats = async () => {
+        try {
+            const res = await api.get('/admin/stats');
+            if (res.data && res.data.data) {
+                setStats(res.data.data);
+            }
+        } catch (err) {
+            console.error('Failed to fetch admin stats', err);
+        } finally {
+            setLoading(false);
+        }
+    };
 
     useEffect(() => {
-        const fetchStats = async () => {
-            try {
-                const res = await api.get('/admin/stats');
-                if (res.data && res.data.data) {
-                    setStats(res.data.data);
-                }
-            } catch (err) {
-                console.error('Failed to fetch admin stats', err);
-            } finally {
-                setLoading(false);
-            }
-        };
         fetchStats();
     }, []);
+
+    const handleSeedData = async () => {
+        if (!confirm("Seed database with sample data?")) return;
+        setSeeding(true);
+        try {
+            await api.post('/admin/seed');
+            await fetchStats();
+        } catch (error) {
+            console.error("Seeding failed", error);
+        } finally {
+            setSeeding(false);
+        }
+    };
 
     if (loading) return (
         <div className="h-screen w-full flex flex-col items-center justify-center bg-slate-900 text-slate-400">
@@ -140,6 +155,14 @@ export const AdminDashboard = () => {
                                     <p className="text-slate-500 font-bold uppercase tracking-[0.2em] text-xs underline decoration-blue-500 underline-offset-8">System Analytics Real-Time Pulse</p>
                                 </div>
                                 <div className="flex gap-4">
+                                    <button 
+                                        onClick={handleSeedData}
+                                        disabled={seeding}
+                                        className="h-12 px-8 bg-amber-600/20 text-amber-500 rounded-xl text-xs font-black uppercase tracking-widest hover:bg-amber-600/30 transition-all border border-amber-500/20 disabled:opacity-50 flex items-center gap-2"
+                                    >
+                                        <Database size={14} className={seeding ? "animate-bounce" : ""} />
+                                        {seeding ? "Injecting..." : "Seed Data"}
+                                    </button>
                                     <button className="h-12 px-8 bg-slate-800 text-white rounded-xl text-xs font-black uppercase tracking-widest hover:bg-slate-700 transition-all border border-slate-700">Health Check</button>
                                     <button className="h-12 px-8 bg-blue-600 text-white rounded-xl text-xs font-black uppercase tracking-widest hover:bg-blue-500 transition-all shadow-2xl shadow-blue-600/20">New Endpoint</button>
                                 </div>
@@ -355,6 +378,29 @@ export const AdminDashboard = () => {
                                         </div>
                                     </div>
                                 </div>
+
+                                <div className="pt-10 border-t border-slate-800">
+                                    <h3 className="text-sm font-black text-slate-500 uppercase tracking-[0.2em] mb-6 flex items-center gap-2">
+                                        <Server size={16} className="text-amber-500" /> System Maintenance
+                                    </h3>
+                                    <div className="bg-black/20 border border-slate-800 p-8 rounded-3xl">
+                                        <div className="flex items-center justify-between">
+                                            <div>
+                                                <h4 className="text-white font-black text-lg mb-2 tracking-tight">Database Seeding</h4>
+                                                <p className="text-slate-500 text-xs font-bold leading-relaxed max-w-md">Populate the kernel with artificial merchant fleet and transaction streams for training or protocol verification.</p>
+                                            </div>
+                                            <button 
+                                                onClick={handleSeedData}
+                                                disabled={seeding}
+                                                className="h-12 px-10 bg-amber-600 text-white rounded-xl font-black text-xs uppercase tracking-widest hover:bg-amber-500 transition-all shadow-2xl flex items-center gap-2"
+                                            >
+                                                {seeding ? <Loader2 className="animate-spin" size={14} /> : <Database size={14} />}
+                                                {seeding ? "Executing..." : "Start Seed Protocol"}
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+
                                 <button className="px-10 h-14 bg-white text-black rounded-2xl font-black uppercase text-xs tracking-widest hover:bg-slate-100 transition-all shadow-2xl">Deploy Config</button>
                             </div>
                         </motion.div>
