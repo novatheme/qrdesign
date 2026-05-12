@@ -1,4 +1,5 @@
 import axios from "axios";
+import { useAuthStore } from "./store";
 
 // Standard Fintech Axios instance
 const api = axios.create({
@@ -15,5 +16,18 @@ api.interceptors.request.use((config) => {
   config.headers["x-api-key"] = apiKey;
   return config;
 });
+
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response && error.response.status === 401) {
+      useAuthStore.getState().logout();
+      if (window.location.pathname !== "/login") {
+        window.location.href = "/login";
+      }
+    }
+    return Promise.reject(error);
+  }
+);
 
 export default api;

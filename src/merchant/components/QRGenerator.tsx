@@ -161,10 +161,15 @@ export const QRGenerator = () => {
         }
     };
 
-    const filteredBanks = (banks || []).filter(b => 
-        (b.shortName || "").toLowerCase().includes(searchTerm.toLowerCase()) || 
-        (b.name || "").toLowerCase().includes(searchTerm.toLowerCase())
-    );
+    const filteredBanks = (banks || []).filter(bank => {
+        const name = (bank.name || "").toLowerCase();
+        const shortName = (bank.shortName || bank.short_name || "").toLowerCase();
+        const code = (bank.code || "").toLowerCase();
+        const bin = (bank.bin || "").toLowerCase();
+        const search = searchTerm.toLowerCase();
+        
+        return name.includes(search) || shortName.includes(search) || code.includes(search) || bin.includes(search);
+    });
 
     const languages: { code: Language, label: string, flag: string }[] = [
         { code: 'vi', label: 'Tiếng Việt', flag: '🇻🇳' },
@@ -244,7 +249,7 @@ export const QRGenerator = () => {
                                                     <div className="w-8 h-8 rounded-lg bg-white border border-slate-100 p-1 flex items-center justify-center">
                                                         <img src={selectedBank.logo} className="max-w-full max-h-full object-contain" />
                                                     </div>
-                                                    <span className="font-bold text-slate-800 tracking-tight">{selectedBank.shortName} <span className="text-slate-400 font-medium ml-1 hidden sm:inline">- {selectedBank.name}</span></span>
+                                                    <span className="font-bold text-slate-800 tracking-tight">{selectedBank.shortName || selectedBank.short_name} <span className="text-slate-400 font-medium ml-1 hidden sm:inline">- {selectedBank.name}</span></span>
                                                 </>
                                             ) : (
                                                 <div className="flex items-center gap-3 text-slate-400">
@@ -291,7 +296,9 @@ export const QRGenerator = () => {
                                                                 <img src={bank.logo} className="max-w-full max-h-full object-contain" />
                                                             </div>
                                                             <div className="flex-1 min-w-0">
-                                                                <p className="font-extrabold text-sm text-slate-800 tracking-tight group-hover:text-blue-600 transition-colors">{bank.shortName} <span className="text-slate-300 font-medium ml-1">#{bank.bin}</span></p>
+                                                                <p className="font-extrabold text-sm text-slate-800 tracking-tight group-hover:text-blue-600 transition-colors">
+                                                                    {bank.shortName || bank.short_name} <span className="text-slate-300 font-medium ml-1">#{bank.bin}</span>
+                                                                </p>
                                                                 <p className="text-[11px] font-bold text-slate-400 truncate mt-0.5">{bank.name}</p>
                                                             </div>
                                                         </button>

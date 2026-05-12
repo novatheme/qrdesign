@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { motion } from 'motion/react';
+import { Link } from 'react-router-dom';
 import { useAuthStore } from '../lib/store';
 import api from '../lib/api';
 import { LogIn, Mail, Lock, ShieldCheck, ArrowRight } from 'lucide-react';
